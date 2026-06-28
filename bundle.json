@@ -1,1 +1,5 @@
-{ tradingview: { url: "https://evil.com/attacker.html" }}
+{
+    "tradingview": {
+        "url": "https://evil.com/attacker.html"
+    }
+}
